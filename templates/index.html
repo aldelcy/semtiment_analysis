@@ -1,0 +1,159 @@
+{% extends "base.html" %}
+{% block content %}
+  <div class="container">
+
+    <div class="row chartsPanel">
+      <div class="col-sm-6">
+        <canvas id="myChart"></canvas>
+      </div>
+      <div class="col-sm-6">
+        <canvas id="myChart2"></canvas>
+      </div>
+    </div>
+
+
+    <div class="row" style="border-top: 1px solid grey; border-bottom: 1px solid grey; padding: 20px 0;">
+      <div class="col-sm-6">
+        Tones:
+        {% for tone in viewData.tones %}
+          <span class="badge filter badge-light" data-filter="{{tone}}" @click="addFilter($event)" >{{ tone }}</span>
+        {% endfor %}
+        <br>
+        Emotions:
+        {% for emotion in viewData.emotions %}
+          <span class="badge filter badge-light" data-filter="{{emotion}}" @click="addFilter($event)">{{ emotion }}</span>
+        {% endfor %}
+        <br>
+        Status:
+        {% for status in viewData.statuses %}
+          <span class="badge filter badge-light" data-filter="{{status}}" @click="addFilter($event)">{{ status }}</span>
+        {% endfor %}
+      </div>
+      <div class="col-sm-3">
+        <button v-if="filterMethodShow" class="btn btn-dark" @click="andOr($event)">[[filterMethod]]</button>
+      </div>
+      <div class="col-sm-3" style="text-align: right;">
+        <h1 style="font-size: 3.6rem;">
+          <span class="filteredText" style="display: none;">
+            <span class="filterNum">0</span> /
+          </span>
+          {{ viewData.tickets | length }}
+        </h1>
+      </div>
+    </div>
+
+
+    <div class="row" style="margin-top: 20px;">
+      <div class="col-sm-12">
+        {% for ticket in viewData.tickets %}
+          <div id="ticket-{{ ticket.id }}" class="ticket-card {{ticket.status}} {{ ticket.tones | map(attribute='tone_name') | list | join(' ') }} {{ ticket.emotion.emotion_name if ticket.emotion else '' }}">
+            <div class="ticket-card-header">
+              <div class="subject">
+                <b>Ticket #{{ ticket.id }} ({{ticket.status}})</b>
+                <br>
+                <a href="#" @click="getTicket('{{ ticket.id }}')" data-toggle="modal" data-target="#ticketModal">{{ ticket.subject }}</a>
+              </div>
+              <div class="date">
+                <b>Date</b>
+                <br>
+                {{ ticket.date }}
+              </div>
+            </div>
+            <div class="ticket-card-body">
+              <div class="tones_emotion">
+                <div class="tones">
+                  {% if ticket.tones | length > 0 %}
+                    <b>Tones</b>
+                    <div class="tones_data">
+                      {% for tone in ticket.tones %}
+                        <span class="badge badge-pill badge-{{ tone.label }}">{{ tone.tone_name }}</span>
+                      {% endfor %}
+                    </div>
+                  {% endif %}
+                </div>
+                <div class="emotion">
+                  {% if ticket.emotion %}
+                    <b>Emotion</b>
+                    <div class="emotion_data">
+                      <span class="badge badge-pill badge-{{ ticket.emotion.label }}">{{ ticket.emotion.emotion_name }}</span>
+                    </div>
+                  {% endif %}
+                </div>
+              </div>
+
+              <hr>
+              <b>Message</b>
+              <br>
+              {{ ticket.message }}
+            </div>
+            <div class="ticket-card-footer">
+              <div class="count">
+                {% if ticket.message | length > 500 %}
+                  <span style="color:red;"> {{ ticket.message | length }} </span>
+                {% else %}
+                  {{ ticket.message | length }}
+                {% endif %}
+                characters
+              </div>
+              <div class="tags">
+                <b>Tags:</b>
+                {% for tag in ticket.tags %}
+                  <span class="badge badge-pill badge-dark">{{ tag }}</span>
+                {% endfor %}
+              </div>
+              <div class="link">
+                <a href="{{ ticket.link }}">Go to ticket</a>
+              </div>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal fade" id="ticketModal" tabindex="-1" role="dialog" aria-labelledby="ticketModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg" role="document">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="ticketModalLabel"></h5>
+          <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+            <span aria-hidden="true">&times;</span>
+          </button>
+        </div>
+        <form action="/edit_ticket/" data-remote="true" method="POST" v-on:submit.prevent="updateTicket($event)">
+          <div class="modal-body">
+            <h5>Subject</h5>
+            <span class="form-subject"></span><br>
+            <hr>
+            <label> Tones </label><br>
+            <input class="form-control form-tones" type="text" list="tones" name="tones" multiple><br>
+
+            <datalist id="tones" separator="," >
+              {% for tone in viewData.tones %}
+                <option value="{{ tone }}">{{ tone }}</option>
+              {% endfor %}
+            </datalist>
+
+            <label> Emotion </label><br>
+            <input class="form-control form-emotion" type="text" list="emotions" name="emotion"><br>
+            <datalist id="emotions" >
+              {% for emotion in viewData.emotions %}
+                <option value="{{ emotion }}">{{ emotion }}</option>
+              {% endfor %}
+            </datalist>
+
+            <hr>
+
+            <h5>Message</h5>
+            <p class="form-message"></p><br>
+          </div>
+          <div class="modal-footer">
+            <button class="btn btn-primary save-ticket" type="submit">Save Changes</button>
+            <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+{% endblock %}

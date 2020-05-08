@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <title>Sentiment Analysis</title>
+    <!-- Required meta tags -->
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <!-- Bootstrap CSS -->
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+      html{
+        min-height: 100%;
+      }
+
+      body{
+        background: rgb(91,0,167);
+        background: linear-gradient(155deg, rgba(91,0,167,1) 0%, rgba(0,212,255,1) 100%);
+        color: white;
+        background-repeat: no-repeat;
+        background-size: cover;
+        font-family: 'Roboto', sans-serif;
+      }
+
+      .chartsPanel {
+        margin-top: 20px;
+        margin-bottom: 20px;
+        background-color: white;
+        border-radius: 5px;
+        padding: 20px 25px;
+      }
+
+      .modal,
+      .ticket-card {
+        color: #333;
+      }
+
+      .ticket-card {
+        border-radius: 5px;
+        font-size: 13px;
+        background-color: white;
+        margin-bottom: 20px;
+        color: #333;
+      }
+
+      .ticket-card .badge{
+        font-size: 1em;
+      }
+
+      .ticket-card-header {
+        padding: 10px 15px;
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .ticket-card-body {
+        border-bottom: 1px solid #ccc;
+        border-top: 1px solid #ccc;
+        padding: 10px 15px;
+        overflow-wrap: break-word;
+      }
+
+      .ticket-card-footer {
+        padding: 10px 15px;
+        display: grid;
+        grid-template-columns: 140px 1fr 100px;
+      }
+
+      .tones_emotion {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .link, .date,
+      .tones_emotion .emotion {
+        text-align: right;
+      }
+
+      .date, .count {
+        color: #333;
+        font-size: 13px;
+      }
+
+      .filter,
+      .selected {
+        cursor: pointer;
+      }
+
+      .selected {
+        color: white;
+        background-color: blue;
+      }
+
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <div class="container-fluid">
+        <div class="row">
+          <div class="col-sm-12" style="text-align: center; padding: 30px 0;">
+            <h1>Sentiment Analysis</h1>
+          </div>
+          <div class="col-sm-12">
+            {% block content %}{% endblock %}
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Optional JavaScript -->
+    <!-- jQuery first, then Popper.js, then Bootstrap JS -->
+    <script src="https://code.jquery.com/jquery-3.5.0.js" integrity="sha256-r/AaFHrszJtwpe+tHyNi/XCfMxYpbsRg2Uqn0x3s2zc=" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue/dist/vue.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@2.8.0"></script>
+
+    <script>
+
+      new Vue({
+        el:'#app',
+        data: {
+          filterMethod: "AND",
+          filterMethodShow: false,
+          filterList: [],
+        },
+
+        delimiters: ['[[',']]'],
+
+        watch: {
+          filterList() {
+            this.filterMethod == "AND" ? this.filterAnd() : this.filterOr();
+          },
+          filterMethod() {
+            this.filterMethod == "AND" ? this.filterAnd() : this.filterOr();
+          },
+        },
+
+        methods: {
+          addFilter(event){
+            $(event.target).toggleClass( 'selected' );
+            this.filterList = $('.filter.selected');
+            this.filterList.length > 1 ? this.filterMethodShow = true : this.filterMethodShow = false;
+          },
+
+          filterOr() {
+            console.log("or")
+            if(this.filterList.length > 0 ){
+              $('.filteredText').show();
+              $('.ticket-card').hide();
+
+              for( let data of this.filterList ){
+                let filter = $(data).data('filter');
+                $('.'+filter).show();
+              }
+
+              $('.filterNum').html( $('.ticket-card:visible').length );
+            }else{
+              $('.filteredText').hide();
+              $('.ticket-card').show();
+            }
+          },
+
+          filterAnd() {
+            console.log("and")
+            if(this.filterList.length > 0 ){
+              $('.filteredText').show();
+              $('.ticket-card').hide();
+              var filters = [];
+
+              for( let data of this.filterList ){
+                let filter = $(data).data('filter');
+                filters.push('.'+filter);
+              }
+              for( let card of $('.ticket-card') ){
+                if( $(card).is(filters.join('')) ){
+                  $(card).show()
+                }
+              }
+
+              $('.filterNum').html( $('.ticket-card:visible').length );
+            }else{
+              $('.filteredText').hide();
+              $('.ticket-card').show();
+            }
+          },
+
+          andOr(event){
+            let text = $(event.target).text();
+            if( text == "AND" ){
+              this.filterMethod = "OR";
+            }else{
+              this.filterMethod = "AND";
+            }
+          },
+
+          updateTicket(event){
+            event.preventDefault();
+            let form = $(event.target),
+                id = form.find('.save-ticket')[0].id,
+                data = {
+                  tones: form.find('.form-tones').val(),
+                  emotion: form.find('.form-emotion').val()
+                };
+
+            $.ajax({
+              url:'/edit_ticket/' + id,
+              type: 'POST',
+              data: data,
+              success: function (data) {
+                let newData = JSON.parse(data);
+
+                $('#ticketModal').modal('hide');
+                $('#ticket-'+newData.id).find('.emotion_data').html(`
+                  <span class="badge badge-pill badge-${newData.emotion.label}">${newData.emotion.emotion_name}</span>
+                `);
+
+                $('#ticket-'+newData.id).find('.tones_data').empty();
+                for( let tone of newData.tones ){
+                  $('#ticket-'+newData.id).find('.tones_data').append(`
+                    <span class="badge badge-pill badge-${tone.label}">${tone.tone_name}</span>
+                  `);
+                }
+              }
+            })
+          },
+
+          getTicket(id) {
+            $.ajax({
+              url: '/ticket/' + id,
+              success: function ( data ) {
+                let modal = $('.modal-content'),
+                    title = modal.find('.modal-title'),
+                    form = modal.find('form'),
+                    body = form.find('.modal-body'),
+                    formData = JSON.parse(data)[0]
+                    tones = formData.tones.map( (item, data) => { return item.tone_name } );
+
+                title.html( 'Ticket #' + formData.id );
+                form.attr( 'action', '/edit_ticket/' + id );
+                body.find('.form-subject').html(formData.subject);
+                body.find('.form-tones').val( tones.join(', ') );
+                body.find('.form-emotion').val( formData.emotion.emotion_name );
+                body.find('.form-message').html(formData.message);
+                form.find('.save-ticket').attr('id', id);
+              }
+            })
+          }
+        },
+      })
+
+
+
+
+      var ctx = document.getElementById('myChart').getContext('2d');
+      var chart = new Chart(ctx, {
+          type: 'pie',
+          data: {
+              labels: ["joy", "anger", "fear", "analytical", "tentative", "confident", "sadness"],
+              datasets: [{
+                  label: 'Tone Chart',
+                  backgroundColor: ['#85f9ff', "#ff0808", "#28d19e", "#952bff", "#c4c4c4", "#f0ff4f", "#ffa72b"],
+                  borderColor: '#fff',
+                  data: [4, 1, 0, 25, 18, 5, 1]
+              }]
+          },
+          // Configuration options go here
+          options: {}
+      });
+
+      var ctx2 = document.getElementById('myChart2').getContext('2d');
+      var chart2 = new Chart(ctx2, {
+          type: 'bar',
+          data: {
+              labels: ["excited",  "frustrated",  "impolite",  "polite",  "sad",  "satisfied",  "sympathetic"],
+              datasets: [{
+                  label: 'Emotion Chart',
+                  backgroundColor: ['#85f9ff', "#ff0808", "#28d19e", "#952bff", "#c4c4c4", "#f0ff4f", "#ffa72b"],
+                  borderColor: '#fff',
+                  data: [1, 7, 0, 39, 27, 0, 0]
+              }]
+          },
+          // Configuration options go here
+          options: {}
+      });
+
+    </script>
+
+  </body>
+</html>
